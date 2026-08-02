@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>토스증권 보유 종목</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 900px; margin: 40px auto; color: #222; }
+  h1 { font-size: 20px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid #e0e0e0; text-align: right; font-size: 14px; }
+  th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
+  th { background: #f7f7f7; }
+  .plus { color: #d92626; }
+  .minus { color: #2563eb; }
+  .summary { display: flex; gap: 24px; margin-top: 12px; }
+  .summary div { font-size: 14px; }
+  .summary b { display: block; font-size: 18px; }
+</style>
+</head>
+<body>
+  <h1>보유 종목</h1>
+  <div class="summary">
+    <div>매입금액(KRW)<b>{{ "{:,.0f}".format(holdings.totalPurchaseAmount.krw|float) }}</b></div>
+    <div>평가금액(KRW)<b>{{ "{:,.0f}".format(holdings.marketValue.amount.krw|float) }}</b></div>
+    <div>손익(KRW)<b class="{{ 'plus' if holdings.profitLoss.amount.krw|float >= 0 else 'minus' }}">{{ "{:,.0f}".format(holdings.profitLoss.amount.krw|float) }} ({{ (holdings.profitLoss.rate|float * 100)|round(2) }}%)</b></div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>종목</th>
+        <th>시장</th>
+        <th>수량</th>
+        <th>현재가</th>
+        <th>평균매입가</th>
+        <th>평가금액</th>
+        <th>손익률</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in holdings['items'] %}
+      <tr>
+        <td>{{ item.name }} ({{ item.symbol }})</td>
+        <td>{{ item.marketCountry }}</td>
+        <td>{{ item.quantity }}</td>
+        <td>{{ item.lastPrice }} {{ item.currency }}</td>
+        <td>{{ item.averagePurchasePrice }} {{ item.currency }}</td>
+        <td>{{ item.marketValue.amount }} {{ item.currency }}</td>
+        <td class="{{ 'plus' if item.profitLoss.rate|float >= 0 else 'minus' }}">{{ (item.profitLoss.rate|float * 100)|round(2) }}%</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>
