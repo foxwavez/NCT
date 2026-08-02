@@ -5,7 +5,7 @@
 <title>토스증권 보유 종목</title>
 <style>
   body { font-family: -apple-system, sans-serif; max-width: 900px; margin: 40px auto; color: #222; }
-  h1 { font-size: 20px; }
+  h1 { font-size: 20px; display: flex; align-items: center; gap: 16px; }
   table { width: 100%; border-collapse: collapse; margin-top: 20px; }
   th, td { padding: 8px 10px; border-bottom: 1px solid #e0e0e0; text-align: right; font-size: 14px; }
   th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
@@ -15,14 +15,39 @@
   .summary { display: flex; gap: 24px; margin-top: 12px; }
   .summary div { font-size: 14px; }
   .summary b { display: block; font-size: 18px; }
+  .rate-note { font-size: 12px; color: #888; margin-top: 4px; }
+
+  .switch { position: relative; display: inline-block; width: 88px; height: 28px; font-size: 12px; }
+  .switch input { display: none; }
+  .switch .track {
+    position: absolute; inset: 0; background: #2563eb; border-radius: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between; padding: 0 8px;
+    color: #fff; font-weight: 600; user-select: none;
+  }
+  .switch .thumb {
+    position: absolute; top: 2px; left: 2px; width: 42px; height: 24px; background: #fff;
+    border-radius: 12px; transition: transform 0.15s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+  #currency-toggle:checked ~ .track .thumb { transform: translateX(42px); }
 </style>
 </head>
 <body>
-  <h1>보유 종목</h1>
+  <h1>
+    보유 종목
+    <label class="switch">
+      <input type="checkbox" id="currency-toggle">
+      <span class="track">
+        <span>KRW</span><span>USD</span>
+        <span class="thumb"></span>
+      </span>
+    </label>
+  </h1>
+  <div class="rate-note">1 USD = {{ "{:,.2f}".format(usd_krw_rate) }} KRW</div>
+
   <div class="summary">
-    <div>매입금액(KRW)<b>{{ "{:,.0f}".format(holdings.totalPurchaseAmount.krw|float) }}</b></div>
-    <div>평가금액(KRW)<b>{{ "{:,.0f}".format(holdings.marketValue.amount.krw|float) }}</b></div>
-    <div>손익(KRW)<b class="{{ 'plus' if holdings.profitLoss.amount.krw|float >= 0 else 'minus' }}">{{ "{:,.0f}".format(holdings.profitLoss.amount.krw|float) }} ({{ (holdings.profitLoss.rate|float * 100)|round(2) }}%)</b></div>
+    <div>매입금액<b class="amount" data-krw="{{ total_purchase.krw }}" data-usd="{{ total_purchase.usd }}"></b></div>
+    <div>평가금액<b class="amount" data-krw="{{ total_market_value.krw }}" data-usd="{{ total_market_value.usd }}"></b></div>
+    <div>손익<b class="amount profit {{ 'plus' if total_profit_loss.krw >= 0 else 'minus' }}" data-krw="{{ total_profit_loss.krw }}" data-usd="{{ total_profit_loss.usd }}" data-rate="{{ (total_profit_loss_rate * 100)|round(2) }}"></b></div>
   </div>
 
   <table>
@@ -38,18 +63,20 @@
       </tr>
     </thead>
     <tbody>
-      {% for item in holdings['items'] %}
+      {% for item in items %}
       <tr>
         <td>{{ item.name }} ({{ item.symbol }})</td>
         <td>{{ item.marketCountry }}</td>
         <td>{{ item.quantity }}</td>
-        <td>{{ item.lastPrice }} {{ item.currency }}</td>
-        <td>{{ item.averagePurchasePrice }} {{ item.currency }}</td>
-        <td>{{ item.marketValue.amount }} {{ item.currency }}</td>
-        <td class="{{ 'plus' if item.profitLoss.rate|float >= 0 else 'minus' }}">{{ (item.profitLoss.rate|float * 100)|round(2) }}%</td>
+        <td class="amount" data-krw="{{ item.lastPrice.krw }}" data-usd="{{ item.lastPrice.usd }}"></td>
+        <td class="amount" data-krw="{{ item.averagePurchasePrice.krw }}" data-usd="{{ item.averagePurchasePrice.usd }}"></td>
+        <td class="amount" data-krw="{{ item.marketValue.krw }}" data-usd="{{ item.marketValue.usd }}"></td>
+        <td class="{{ 'plus' if item.profitLossRate|float >= 0 else 'minus' }}">{{ (item.profitLossRate|float * 100)|round(2) }}%</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+
+  <script src="/static/app.js"></script>
 </body>
 </html>
