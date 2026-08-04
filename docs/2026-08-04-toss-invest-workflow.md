@@ -32,17 +32,32 @@
 
 ## 🧩 기능 카탈로그
 
-| 아이콘 | 기능 | 파일 | 설명 |
-|:---:|---|---|---|
-| 🔐 | 환경변수 관리 | `.env`, `.env.example` | client_id/secret을 코드와 분리, git에서 제외 |
-| 🔑 | 토큰 발급 | `toss/auth.py` | OAuth2 Client Credentials Grant로 access_token 발급 |
-| 📈 | 시세 조회 | `toss/quotes.py` | 종목 심볼로 기본 정보 조회 (예: 삼성전자, NVDA, NVDY) |
-| 💼 | 계좌 조회 | `toss/accounts.py` | 보유 계좌 목록과 `accountSeq` 조회 |
-| 📊 | 보유 종목 조회 | `toss/holdings.py` | 계좌 기준 보유 주식·평가금액·손익 조회 |
-| 💱 | 환율 조회 | `toss/exchange_rate.py` | 실시간 USD ↔ KRW 환율 |
-| 🖥️ | 대시보드 | `app.py`, `templates/index.html` | Flask + Jinja2로 렌더링되는 보유 종목 화면 |
-| 🔀 | 통화 스위치 | `static/app.js` | 순수 JS 토글로 전체 금액을 KRW/USD 기준 전환 |
-| 📘 | 재사용 스킬 | `.claude/skills/toss-invest-api/` | 다음에 이어서 개발할 때 AI가 참고하는 레퍼런스 문서 |
+### 🔐 환경변수 관리 — `.env`, `.env.example`
+client_id/secret을 코드에서 완전히 분리. `.env`는 `.gitignore`에 등록해 git 이력에 절대 남지 않도록 하고, 값이 비어있는 `.env.example`만 커밋해서 다른 환경에서도 어떤 값이 필요한지 알 수 있게 함.
+
+### 🔑 토큰 발급 — `toss/auth.py`
+`POST /oauth2/token`에 OAuth2 **Client Credentials Grant** 방식으로 요청. 발급된 access_token은 24시간 유효하며, client당 유효 토큰이 1개뿐이라 재발급 시 이전 토큰은 즉시 무효화됨. (자동 캐싱/재발급 로직은 검토했으나, "필요할 때 재발급" 방식으로 충분하다고 판단해 단순하게 유지하기로 결정 — 이슈 #15 참고)
+
+### 📈 시세 조회 — `toss/quotes.py`
+`GET /api/v1/stocks`로 종목 심볼 기반 기본 정보 조회. 삼성전자(005930), NVDA(엔비디아), NVDY(YieldMax NVDA Option Income Strategy ETF) 3개 종목으로 실제 호출 검증 완료.
+
+### 💼 계좌 조회 — `toss/accounts.py`
+`GET /api/v1/accounts`로 보유 계좌 목록 조회. 응답의 `accountSeq`가 이후 계좌 관련 API(보유종목, 주문 등)의 `X-Tossinvest-Account` 헤더 값으로 재사용되는 진입점 역할.
+
+### 📊 보유 종목 조회 — `toss/holdings.py`
+`GET /api/v1/holdings`로 계좌 기준 보유 주식·평가금액·손익 조회. 국내(KR) 4종목 + 해외(US) 6종목 실제 데이터로 검증 완료.
+
+### 💱 환율 조회 — `toss/exchange_rate.py`
+`GET /api/v1/exchange-rate`로 실시간 USD ↔ KRW 환율 조회 (1분 주기 갱신). 대시보드의 통화 스위치 기능이 이 환율로 전체 금액을 실시간 환산하는 데 사용.
+
+### 🖥️ 대시보드 — `app.py`, `templates/index.html`
+Flask + Jinja2 서버사이드 렌더링. React를 전혀 쓰지 않고 순수 HTML/CSS/JS로 구성 — "빠르게, 눈에 보이게" 확인하는 게 목표였기 때문에 빌드 과정이 필요 없는 방식을 택함.
+
+### 🔀 통화 스위치 — `static/app.js`
+매입금액/평가금액/손익 등 모든 금액을 KRW ⇄ USD 토글 하나로 전환. 달러 보유 비중이 큰 사용자(작성자 본인)를 위해 추가된 기능. 초기 버전에서 `<label>` + 중복 `onclick`으로 토글이 두 번 발생해 아무 반응이 없어 보이는 버그가 있었고, 원인을 찾아 수정함.
+
+### 📘 재사용 스킬 — `.claude/skills/toss-invest-api/`
+다음에 이 작업을 이어갈 때 AI(Claude Code)가 매번 새로 문서를 뒤지지 않고도 API 엔드포인트, 인증 흐름, 자주 발생하는 실수를 바로 참고할 수 있도록 정리한 레퍼런스. 사람이 읽는 이 문서와 달리, AI 세션 시작 시 필요할 때만 불러와지는 문서.
 
 ---
 
@@ -71,6 +86,15 @@
 > 💡 토스 Open API의 네이티브 조건주문(`POST /api/v1/conditional-orders`)은 `quantity`가 고정값 필수라, 이 기능은 별도의 **가격 감시 + 예수금 조회 + 즉시 주문 실행** 서비스를 직접 만들어야 함 (`GET /api/v1/buying-power` + `POST /api/v1/orders` 조합).
 
 ---
+
+## 🔁 다시 시작할 때 체크리스트
+
+이어서 개발할 때 매번 확인이 필요한 것들:
+
+1. 🌐 **허용 IP 확인** — 네트워크가 바뀌면 (예: 카페, 다른 와이파이) WTS 설정 > Open API > 허용 IP 관리에서 현재 공인 IP를 새로 등록해야 함. 등록 안 된 IP에서 호출하면 `invalid_client`로 실패.
+2. 🔑 **`.env` 값 확인** — client_secret은 발급 시 한 번만 표시되므로, 유실 시 재발급 후 반드시 `.env`에 즉시 저장.
+3. 🐍 **가상환경 활성화** — `source .venv/bin/activate` 후 `pip install -r requirements.txt`.
+4. 🖥️ **로컬 서버 실행** — `python app.py` → `http://127.0.0.1:5001/`.
 
 ## 🔗 참고
 
