@@ -6,14 +6,18 @@ STOCKS_URL = "https://openapi.tossinvest.com/api/v1/stocks"
 
 
 def get_stock(symbol: str) -> dict:
+    return get_stocks([symbol])[0]
+
+
+def get_stocks(symbols: list) -> list:
     token = get_access_token()
     response = requests.get(
         STOCKS_URL,
-        params={"symbols": symbol},
+        params={"symbols": ",".join(symbols)},
         headers={"Authorization": f"Bearer {token}"},
     )
     response.raise_for_status()
-    return response.json()["result"][0]
+    return response.json()["result"]
 
 
 if __name__ == "__main__":

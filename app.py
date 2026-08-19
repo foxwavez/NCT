@@ -3,6 +3,7 @@ from flask import Flask, render_template
 from toss.accounts import get_accounts
 from toss.exchange_rate import get_exchange_rate
 from toss.holdings import get_holdings
+from toss.quotes import get_stocks
 
 app = Flask(__name__)
 
@@ -19,6 +20,11 @@ def index():
     account_seq = get_accounts()[0]["accountSeq"]
     holdings = get_holdings(account_seq)
     usd_krw_rate = float(get_exchange_rate("USD", "KRW")["rate"])
+
+    symbols = [item["symbol"] for item in holdings["items"]]
+    english_names = {}
+    if symbols:
+        english_names = {stock["symbol"]: stock["englishName"] for stock in get_stocks(symbols)}
 
     items = []
     total_purchase = {"krw": 0.0, "usd": 0.0}
@@ -44,6 +50,7 @@ def index():
         items.append(
             {
                 "name": item["name"],
+                "englishName": english_names.get(item["symbol"], item["symbol"]),
                 "symbol": item["symbol"],
                 "marketCountry": item["marketCountry"],
                 "quantity": item["quantity"],
